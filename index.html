@@ -7,251 +7,1047 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="本予算計算">
+
   <title>本予算計算</title>
+
   <link rel="manifest" href="./manifest.json">
+
   <style>
-    :root { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color:#171717; background:#f5f5f7; }
-    * { box-sizing:border-box; }
-    body { margin:0; padding:16px; }
-    main { max-width:640px; margin:0 auto; }
-    h1 { font-size:24px; margin:8px 0 16px; }
-    .card { background:#fff; border-radius:16px; padding:16px; margin-bottom:14px; box-shadow:0 1px 4px #0001; }
-    label { display:block; font-size:13px; color:#666; margin-bottom:6px; }
-    input { width:100%; min-height:48px; border:1px solid #ccc; border-radius:10px; padding:10px 12px; font-size:18px; background:#fff; }
-    .settings { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    .book-row { display:grid; grid-template-columns:1fr 52px; gap:8px; margin-bottom:9px; align-items:end; }
-    .book-row button { min-height:48px; }
-    button { border:0; border-radius:10px; padding:12px 14px; font-size:16px; font-weight:600; cursor:pointer; }
-    .primary { background:#1677ff; color:#fff; width:100%; min-height:52px; }
-    .secondary { background:#e9eef7; color:#17406f; width:100%; }
-    .danger { background:#fff0f0; color:#b42318; }
-    .actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
-    .summary { display:grid; grid-template-columns:1fr auto; gap:8px 12px; font-size:16px; }
-    .summary strong { text-align:right; }
-    .result { display:none; }
-    .result.show { display:block; }
-    .chosen { margin:12px 0 0; padding:0; list-style:none; }
-    .chosen li { display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid #eee; gap:12px; }
-    .muted { color:#666; font-size:13px; }
-    .error { color:#b42318; font-size:14px; min-height:20px; margin-top:8px; }
-    @media (max-width:420px) { .settings,.actions { grid-template-columns:1fr; } }
-  </style>
-</head>
-<body>
-<main>
-  <h1>本予算計算</h1>
+    :root {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #171717;
+      background: #f5f5f7;
+    }
 
-  <section class="card settings">
-    <div>
-      <label for="target">予算（税込・円）</label>
-      <input id="target" type="number" inputmode="numeric" min="0" step="1" value="5000" placeholder="例：5000">
-    </div>
-    <div>
-      <label for="taxRate">税率（%）</label>
-      <input id="taxRate" type="number" inputmode="decimal" min="0" max="100" step="0.1" value="10">
-    </div>
-  </section>
+    * {
+      box-sizing: border-box;
+    }
 
-  <section class="card">
-    <label>本の税別価格</label>
-    <div id="books"></div>
-    <button id="addBook" class="secondary" type="button">＋ 本を追加</button>
-    <div class="actions">
-      <button id="clearAll" class="danger" type="button">全削除</button>
-      <button id="calculate" class="primary" type="button">組み合わせを計算</button>
-    </div>
-    <div id="message" class="error" aria-live="polite"></div>
-  </section>
+    body {
+      margin: 0;
+      padding: 16px;
+    }
 
-  <section class="card">
-    <div class="summary">
-      <span>全冊 税別合計</span><strong id="totalEx">0 円</strong>
-      <span>全冊 税込合計</span><strong id="totalIn">0 円</strong>
-    </div>
-  </section>
+    main {
+      max-width: 640px;
+      margin: 0 auto;
+    }
 
-  <section id="result" class="card result" aria-live="polite">
-    <div class="summary">
-      <span>組み合わせ（税込）</span><strong id="bestSum">0 円</strong>
-      <span>予算残額</span><strong id="remaining">0 円</strong>
-    </div>
-    <ul id="chosen" class="chosen"></ul>
-    <p class="muted">税込価格は各冊ごとに四捨五入して計算します。</p>
-  </section>
-</main>
+    h1 {
+      font-size: 24px;
+      margin: 8px 0 16px;
+    }
 
-<script>
-(() => {
-  const STORAGE_KEY = "book-budget-calculator-v1";
-  const booksEl = document.getElementById("books");
-  const targetEl = document.getElementById("target");
-  const taxEl = document.getElementById("taxRate");
-  const totalExEl = document.getElementById("totalEx");
-  const totalInEl = document.getElementById("totalIn");
-  const messageEl = document.getElementById("message");
-  const resultEl = document.getElementById("result");
-  const bestSumEl = document.getElementById("bestSum");
-  const remainingEl = document.getElementById("remaining");
-  const chosenEl = document.getElementById("chosen");
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 4px #0001;
+    }
 
-  const yen = n => `${Number(n).toLocaleString("ja-JP")} 円`;
+    label {
+      display: block;
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 6px;
+    }
 
-  function getPrices() {
-    return [...booksEl.querySelectorAll("input.book-price")]
-      .map(el => Number(el.value))
-      .filter(v => Number.isFinite(v) && v > 0);
-  }
+    input {
+      width: 100%;
+      min-height: 48px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 18px;
+      background: #fff;
+    }
 
-  function save() {
-    const data = {
-      target: targetEl.value,
-      taxRate: taxEl.value,
-      books: [...booksEl.querySelectorAll("input.book-price")].map(el => el.value)
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }
+    .settings {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
 
-  function updateTotals() {
-    const prices = getPrices();
-    const tax = Number(taxEl.value);
-    const rate = Number.isFinite(tax) && tax >= 0 ? tax / 100 : 0;
-    const totalEx = prices.reduce((a,b) => a+b, 0);
-    totalExEl.textContent = yen(totalEx);
-    totalInEl.textContent = yen(Math.round(totalEx * (1 + rate)));
-    save();
-  }
+    .book-row {
+      display: grid;
+      grid-template-columns: 1fr 52px;
+      gap: 8px;
+      margin-bottom: 9px;
+      align-items: end;
+    }
 
-  function addBook(value = "") {
-    const row = document.createElement("div");
-    row.className = "book-row";
-    const input = document.createElement("input");
-    input.className = "book-price";
-    input.type = "number";
-    input.inputMode = "numeric";
-    input.min = "0";
-    input.step = "1";
-    input.placeholder = "税別価格";
-    input.value = value;
-    input.setAttribute("aria-label", "本の税別価格");
-    input.addEventListener("input", () => { resultEl.classList.remove("show"); updateTotals(); });
+    .book-row button {
+      min-height: 48px;
+    }
 
-    const del = document.createElement("button");
-    del.type = "button";
-    del.className = "danger";
-    del.textContent = "削除";
-    del.setAttribute("aria-label", "この本を削除");
-    del.addEventListener("click", () => {
-      row.remove();
-      if (!booksEl.children.length) addBook();
-      resultEl.classList.remove("show");
-      updateTotals();
-    });
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
 
-    row.append(input, del);
-    booksEl.appendChild(row);
-  }
+    .primary {
+      background: #1677ff;
+      color: #fff;
+      width: 100%;
+      min-height: 52px;
+    }
 
-  function calculate() {
-    messageEl.textContent = "";
-    const prices = getPrices();
-    const target = Math.floor(Number(targetEl.value));
-    const tax = Number(taxEl.value);
+    .secondary {
+      background: #e9eef7;
+      color: #17406f;
+      width: 100%;
+    }
 
-    if (!prices.length) { messageEl.textContent = "本の価格を1冊以上入力してください。"; return; }
-    if (!Number.isFinite(target) || target <= 0) { messageEl.textContent = "予算を1円以上で入力してください。"; return; }
-    if (!Number.isFinite(tax) || tax < 0 || tax > 100) { messageEl.textContent = "税率は0?100%で入力してください。"; return; }
+    .danger {
+      background: #fff0f0;
+      color: #b42318;
+    }
 
-    const rate = tax / 100;
-    const taxed = prices.map(v => Math.round(v * (1 + rate)));
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
 
-    // 元GASと同じ0/1ナップサック。各本は1回だけ選べる。
-    // targetが極端に大きい場合のメモリ消費を避ける。
-    if (target > 10000000) { messageEl.textContent = "予算は1,000万円以下で入力してください。"; return; }
+    .summary {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px 12px;
+      font-size: 16px;
+    }
 
-    const reachable = new Uint8Array(target + 1);
-    reachable[0] = 1;
-    const prevSum = new Int32Array(target + 1);
-    const prevItem = new Int32Array(target + 1);
-    prevItem.fill(-1);
+    .summary strong {
+      text-align: right;
+    }
 
-    for (let i = 0; i < taxed.length; i++) {
-      const p = taxed[i];
-      if (p <= 0 || p > target) continue;
-      for (let t = target; t >= p; t--) {
-        if (!reachable[t] && reachable[t - p]) {
-          reachable[t] = 1;
-          prevSum[t] = t - p;
-          prevItem[t] = i;
-        }
+    .result {
+      display: none;
+    }
+
+    .result.show {
+      display: block;
+    }
+
+    .chosen {
+      margin: 12px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .chosen li {
+      display: flex;
+      justify-content: space-between;
+      padding: 9px 0;
+      border-bottom: 1px solid #eee;
+      gap: 12px;
+    }
+
+    .muted {
+      color: #666;
+      font-size: 13px;
+    }
+
+    .error {
+      color: #b42318;
+      font-size: 14px;
+      min-height: 20px;
+      margin-top: 8px;
+    }
+
+    @media (max-width: 420px) {
+      .settings,
+      .actions {
+        grid-template-columns: 1fr;
       }
     }
+  </style>
+</head>
 
-    let best = target;
-    while (best > 0 && !reachable[best]) best--;
+<body>
 
-    const indexes = [];
-    let cur = best;
-    while (cur > 0 && prevItem[cur] >= 0) {
-      const i = prevItem[cur];
-      indexes.push(i);
-      cur = prevSum[cur];
-    }
-    indexes.reverse();
+<main>
 
-    bestSumEl.textContent = yen(best);
-    remainingEl.textContent = yen(target - best);
-    chosenEl.replaceChildren();
-    indexes.forEach(i => {
-      const li = document.createElement("li");
-      const left = document.createElement("span");
-      left.textContent = `税別 ${yen(prices[i])}`;
-      const right = document.createElement("strong");
-      right.textContent = `税込 ${yen(taxed[i])}`;
-      li.append(left, right);
-      chosenEl.appendChild(li);
-    });
-    if (!indexes.length) {
-      const li = document.createElement("li");
-      li.textContent = "予算内に入る本がありません。";
-      chosenEl.appendChild(li);
-    }
-    resultEl.classList.add("show");
+  <h1>本予算計算</h1>
+
+  <!-- 設定 -->
+  <section class="card settings">
+
+    <div>
+      <label for="target">予算（税込・円）</label>
+
+      <input
+        id="target"
+        type="number"
+        inputmode="numeric"
+        min="0"
+        step="1"
+        value="5000"
+      >
+    </div>
+
+    <div>
+      <label for="taxRate">税率（%）</label>
+
+      <input
+        id="taxRate"
+        type="number"
+        inputmode="decimal"
+        min="0"
+        max="100"
+        step="0.1"
+        value="10"
+      >
+    </div>
+
+  </section>
+
+
+  <!-- 本入力 -->
+  <section class="card">
+
+    <label>本の税別価格</label>
+
+    <div id="books"></div>
+
+    <button
+      id="addBook"
+      class="secondary"
+      type="button"
+    >
+      ＋ 本を追加
+    </button>
+
+
+    <div class="actions">
+
+      <button
+        id="clearAll"
+        class="danger"
+        type="button"
+      >
+        本を全削除
+      </button>
+
+      <button
+        id="calculate"
+        class="primary"
+        type="button"
+      >
+        組み合わせを計算
+      </button>
+
+    </div>
+
+    <div
+      id="message"
+      class="error"
+      aria-live="polite"
+    ></div>
+
+  </section>
+
+
+  <!-- 全体合計 -->
+  <section class="card">
+
+    <div class="summary">
+
+      <span>全冊 税別合計</span>
+      <strong id="totalEx">0 円</strong>
+
+      <span>全冊 税込合計</span>
+      <strong id="totalIn">0 円</strong>
+
+    </div>
+
+  </section>
+
+
+  <!-- 計算結果 -->
+  <section
+    id="result"
+    class="card result"
+    aria-live="polite"
+  >
+
+    <div class="summary">
+
+      <span>組み合わせ（税込）</span>
+      <strong id="bestSum">0 円</strong>
+
+      <span>予算残額</span>
+      <strong id="remaining">0 円</strong>
+
+    </div>
+
+    <ul
+      id="chosen"
+      class="chosen"
+    ></ul>
+
+    <p class="muted">
+      税込価格は各冊ごとに四捨五入して計算します。
+    </p>
+
+  </section>
+
+</main>
+
+
+<script>
+
+(() => {
+
+  const STORAGE_KEY = "book-budget-calculator-v1";
+
+  const booksEl =
+    document.getElementById("books");
+
+  const targetEl =
+    document.getElementById("target");
+
+  const taxEl =
+    document.getElementById("taxRate");
+
+  const totalExEl =
+    document.getElementById("totalEx");
+
+  const totalInEl =
+    document.getElementById("totalIn");
+
+  const messageEl =
+    document.getElementById("message");
+
+  const resultEl =
+    document.getElementById("result");
+
+  const bestSumEl =
+    document.getElementById("bestSum");
+
+  const remainingEl =
+    document.getElementById("remaining");
+
+  const chosenEl =
+    document.getElementById("chosen");
+
+
+  /* 円表示 */
+  const yen = n =>
+    `${Number(n).toLocaleString("ja-JP")} 円`;
+
+
+  /* 入力された本の価格一覧 */
+  function getPrices() {
+
+    return [
+      ...booksEl.querySelectorAll(
+        "input.book-price"
+      )
+    ]
+      .map(el => Number(el.value))
+      .filter(
+        v =>
+          Number.isFinite(v) &&
+          v > 0
+      );
+  }
+
+
+  /* ローカル保存 */
+  function save() {
+
+    const data = {
+
+      target:
+        targetEl.value,
+
+      taxRate:
+        taxEl.value,
+
+      books:
+        [
+          ...booksEl.querySelectorAll(
+            "input.book-price"
+          )
+        ].map(
+          el => el.value
+        )
+
+    };
+
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(data)
+    );
+  }
+
+
+  /* 合計更新 */
+  function updateTotals() {
+
+    const prices =
+      getPrices();
+
+    const tax =
+      Number(taxEl.value);
+
+    const rate =
+      Number.isFinite(tax) &&
+      tax >= 0
+        ? tax / 100
+        : 0;
+
+
+    const totalEx =
+      prices.reduce(
+        (a, b) => a + b,
+        0
+      );
+
+
+    const totalIn =
+      Math.round(
+        totalEx *
+        (1 + rate)
+      );
+
+
+    totalExEl.textContent =
+      yen(totalEx);
+
+    totalInEl.textContent =
+      yen(totalIn);
+
+
     save();
   }
 
-  document.getElementById("addBook").addEventListener("click", () => { addBook(); save(); });
-  document.getElementById("calculate").addEventListener("click", calculate);
-  document.getElementById("clearAll").addEventListener("click", () => {
-    if (!confirm("入力した本・予算をすべて削除します。よろしいですか？")) return;
-    localStorage.removeItem(STORAGE_KEY);
-    booksEl.replaceChildren();
-    targetEl.value = "";
-    taxEl.value = "10";
-    addBook();
-    resultEl.classList.remove("show");
-    messageEl.textContent = "";
-    updateTotals();
-  });
-  targetEl.addEventListener("input", () => { resultEl.classList.remove("show"); save(); });
-  taxEl.addEventListener("input", () => { resultEl.classList.remove("show"); updateTotals(); });
+
+  /* 本を1冊追加 */
+  function addBook(
+    value = ""
+  ) {
+
+    const row =
+      document.createElement("div");
+
+    row.className =
+      "book-row";
+
+
+    const input =
+      document.createElement("input");
+
+    input.className =
+      "book-price";
+
+    input.type =
+      "number";
+
+    input.inputMode =
+      "numeric";
+
+    input.min =
+      "0";
+
+    input.step =
+      "1";
+
+    input.placeholder =
+      "税別価格";
+
+    input.value =
+      value;
+
+    input.setAttribute(
+      "aria-label",
+      "本の税別価格"
+    );
+
+
+    input.addEventListener(
+      "input",
+      () => {
+
+        resultEl
+          .classList
+          .remove("show");
+
+        updateTotals();
+
+      }
+    );
+
+
+    const del =
+      document.createElement("button");
+
+    del.type =
+      "button";
+
+    del.className =
+      "danger";
+
+    del.textContent =
+      "削除";
+
+    del.setAttribute(
+      "aria-label",
+      "この本を削除"
+    );
+
+
+    del.addEventListener(
+      "click",
+      () => {
+
+        row.remove();
+
+
+        if (
+          !booksEl.children.length
+        ) {
+
+          addBook();
+
+        }
+
+
+        resultEl
+          .classList
+          .remove("show");
+
+
+        updateTotals();
+
+      }
+    );
+
+
+    row.append(
+      input,
+      del
+    );
+
+
+    booksEl.appendChild(
+      row
+    );
+
+  }
+
+
+  /* 組み合わせ計算 */
+  function calculate() {
+
+    messageEl.textContent =
+      "";
+
+
+    const prices =
+      getPrices();
+
+
+    const target =
+      Math.floor(
+        Number(
+          targetEl.value
+        )
+      );
+
+
+    const tax =
+      Number(
+        taxEl.value
+      );
+
+
+    if (
+      !prices.length
+    ) {
+
+      messageEl.textContent =
+        "本の価格を1冊以上入力してください。";
+
+      return;
+    }
+
+
+    if (
+      !Number.isFinite(target) ||
+      target <= 0
+    ) {
+
+      messageEl.textContent =
+        "予算を1円以上で入力してください。";
+
+      return;
+    }
+
+
+    if (
+      !Number.isFinite(tax) ||
+      tax < 0 ||
+      tax > 100
+    ) {
+
+      messageEl.textContent =
+        "税率は0?100%で入力してください。";
+
+      return;
+    }
+
+
+    const rate =
+      tax / 100;
+
+
+    const taxed =
+      prices.map(
+        v =>
+          Math.round(
+            v *
+            (1 + rate)
+          )
+      );
+
+
+    /*
+      元GASと同じ
+      0/1ナップサック
+    */
+
+    if (
+      target > 10000000
+    ) {
+
+      messageEl.textContent =
+        "予算は1,000万円以下で入力してください。";
+
+      return;
+    }
+
+
+    const reachable =
+      new Uint8Array(
+        target + 1
+      );
+
+
+    reachable[0] =
+      1;
+
+
+    const prevSum =
+      new Int32Array(
+        target + 1
+      );
+
+
+    const prevItem =
+      new Int32Array(
+        target + 1
+      );
+
+
+    prevItem.fill(-1);
+
+
+    for (
+      let i = 0;
+      i < taxed.length;
+      i++
+    ) {
+
+      const p =
+        taxed[i];
+
+
+      if (
+        p <= 0 ||
+        p > target
+      ) {
+
+        continue;
+
+      }
+
+
+      for (
+        let t = target;
+        t >= p;
+        t--
+      ) {
+
+        if (
+          !reachable[t] &&
+          reachable[t - p]
+        ) {
+
+          reachable[t] =
+            1;
+
+          prevSum[t] =
+            t - p;
+
+          prevItem[t] =
+            i;
+
+        }
+
+      }
+
+    }
+
+
+    /* 最大金額を検索 */
+    let best =
+      target;
+
+
+    while (
+      best > 0 &&
+      !reachable[best]
+    ) {
+
+      best--;
+
+    }
+
+
+    /* 使用した本を復元 */
+    const indexes =
+      [];
+
+
+    let cur =
+      best;
+
+
+    while (
+      cur > 0 &&
+      prevItem[cur] >= 0
+    ) {
+
+      const i =
+        prevItem[cur];
+
+
+      indexes.push(i);
+
+
+      cur =
+        prevSum[cur];
+
+    }
+
+
+    indexes.reverse();
+
+
+    /* 結果表示 */
+    bestSumEl.textContent =
+      yen(best);
+
+
+    remainingEl.textContent =
+      yen(
+        target - best
+      );
+
+
+    chosenEl.replaceChildren();
+
+
+    indexes.forEach(
+      i => {
+
+        const li =
+          document.createElement("li");
+
+
+        const left =
+          document.createElement("span");
+
+
+        left.textContent =
+          `税別 ${yen(prices[i])}`;
+
+
+        const right =
+          document.createElement("strong");
+
+
+        right.textContent =
+          `税込 ${yen(taxed[i])}`;
+
+
+        li.append(
+          left,
+          right
+        );
+
+
+        chosenEl.appendChild(
+          li
+        );
+
+      }
+    );
+
+
+    if (
+      !indexes.length
+    ) {
+
+      const li =
+        document.createElement("li");
+
+
+      li.textContent =
+        "予算内に入る本がありません。";
+
+
+      chosenEl.appendChild(
+        li
+      );
+
+    }
+
+
+    resultEl
+      .classList
+      .add("show");
+
+
+    save();
+
+  }
+
+
+  /*
+    本を追加
+  */
+
+  document
+    .getElementById("addBook")
+    .addEventListener(
+      "click",
+      () => {
+
+        addBook();
+
+        save();
+
+      }
+    );
+
+
+  /*
+    計算
+  */
+
+  document
+    .getElementById("calculate")
+    .addEventListener(
+      "click",
+      calculate
+    );
+
+
+  /*
+    本だけ全削除
+
+    予算・税率は残す
+  */
+
+  document
+    .getElementById("clearAll")
+    .addEventListener(
+      "click",
+      () => {
+
+        if (
+          !confirm(
+            "入力した本をすべて削除します。よろしいですか？"
+          )
+        ) {
+
+          return;
+
+        }
+
+
+        booksEl
+          .replaceChildren();
+
+
+        addBook();
+
+
+        resultEl
+          .classList
+          .remove("show");
+
+
+        messageEl.textContent =
+          "";
+
+
+        updateTotals();
+
+      }
+    );
+
+
+  /*
+    予算変更
+  */
+
+  targetEl.addEventListener(
+    "input",
+    () => {
+
+      resultEl
+        .classList
+        .remove("show");
+
+      save();
+
+    }
+  );
+
+
+  /*
+    税率変更
+  */
+
+  taxEl.addEventListener(
+    "input",
+    () => {
+
+      resultEl
+        .classList
+        .remove("show");
+
+      updateTotals();
+
+    }
+  );
+
+
+  /*
+    保存データ復元
+  */
 
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+
+    const saved =
+      JSON.parse(
+        localStorage.getItem(
+          STORAGE_KEY
+        ) || "null"
+      );
+
+
     if (saved) {
-      targetEl.value = saved.target ?? "";
-      taxEl.value = saved.taxRate ?? "10";
-      const books = Array.isArray(saved.books) && saved.books.length ? saved.books : [""];
-      books.forEach(addBook);
-    } else addBook();
-  } catch {
-    addBook();
+
+      /*
+        保存済みの設定があれば
+        そちらを優先
+      */
+
+      targetEl.value =
+        saved.target || "5000";
+
+
+      taxEl.value =
+        saved.taxRate || "10";
+
+
+      const books =
+        Array.isArray(
+          saved.books
+        ) &&
+        saved.books.length
+
+          ? saved.books
+
+          : [""];
+
+
+      books.forEach(
+        addBook
+      );
+
+    }
+
+    else {
+
+      /*
+        初回起動
+      */
+
+      targetEl.value =
+        "5000";
+
+
+      taxEl.value =
+        "10";
+
+
+      addBook();
+
+    }
+
   }
+
+  catch {
+
+    targetEl.value =
+      "5000";
+
+
+    taxEl.value =
+      "10";
+
+
+    addBook();
+
+  }
+
+
   updateTotals();
 
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+
+  /*
+    Service Worker登録
+  */
+
+  if (
+    "serviceWorker" in navigator
+  ) {
+
+    navigator
+      .serviceWorker
+      .register(
+        "./service-worker.js"
+      )
+      .catch(
+        () => {}
+      );
+
   }
+
 })();
+
 </script>
+
 </body>
 </html>
