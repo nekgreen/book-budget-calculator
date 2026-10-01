@@ -44,7 +44,7 @@
   <section class="card settings">
     <div>
       <label for="target">予算（税込・円）</label>
-      <input id="target" type="number" inputmode="numeric" min="0" step="1" placeholder="例：5000">
+      <input id="target" type="number" inputmode="numeric" min="0" step="1" value="5000" placeholder="例：5000">
     </div>
     <div>
       <label for="taxRate">税率（%）</label>
@@ -159,7 +159,7 @@
 
     if (!prices.length) { messageEl.textContent = "本の価格を1冊以上入力してください。"; return; }
     if (!Number.isFinite(target) || target <= 0) { messageEl.textContent = "予算を1円以上で入力してください。"; return; }
-    if (!Number.isFinite(tax) || tax < 0 || tax > 100) { messageEl.textContent = "税率は0〜100%で入力してください。"; return; }
+    if (!Number.isFinite(tax) || tax < 0 || tax > 100) { messageEl.textContent = "税率は0?100%で入力してください。"; return; }
 
     const rate = tax / 100;
     const taxed = prices.map(v => Math.round(v * (1 + rate)));
