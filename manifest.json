@@ -1,0 +1,11 @@
+{
+  "name": "本予算計算",
+  "short_name": "本予算計算",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f5f7",
+  "theme_color": "#ffffff",
+  "lang": "ja",
+  "description": "本の税込合計と予算内の最適な組み合わせをオフラインで計算します。"
+}
